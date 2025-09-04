@@ -5,10 +5,35 @@ import (
 	"strings"
 )
 
+type OrderStorage interface {
+	Save(order *Order)
+	GetAll() []Order
+}
+
+type Order struct {
+	ID           int
+	CustomerName string
+	Status       string
+}
+
+type OrderStorageMock struct {
+	orders []Order
+}
+
+func (o Order) IsDelivered() bool {
+	return o.Status == "Delivered"
+}
+
+func (OM *OrderStorageMock) Save(order *Order) {
+	OM.orders = append(OM.orders, *order)
+}
+
+func (OM OrderStorageMock) GetAll() []Order {
+	return OM.orders
+}
+
 func countDelivered(sliceOrderStatuses []string) int {
-
 	count := 0
-
 	for _, status := range sliceOrderStatuses {
 		if strings.EqualFold(status, "delivered") {
 			count++
@@ -16,13 +41,11 @@ func countDelivered(sliceOrderStatuses []string) int {
 			continue
 		}
 	}
-
 	fmt.Printf("Количество заказов со статусом 'delivered': %d\n", count)
 	return count
 }
 
 func markCancelled(status *string) []string {
-
 	if *status == "created" {
 		*status = "cancelled"
 	}
@@ -44,6 +67,8 @@ func main() {
 		1,
 		2,
 	)
+
+	OrderStorageMock := OrderStorageMock{}
 
 	orderStatuses := []string{
 		"created", "shipped", "delivered", "cancelled", "delivered", "created",
@@ -86,5 +111,28 @@ func main() {
 		}
 		fmt.Printf("%s\n", status)
 	}
+
+	Order1 := Order{
+		ID:           2,
+		CustomerName: "Ivan",
+		Status:       "Delivered",
+	}
+	Order2 := Order{
+		ID:           3,
+		CustomerName: "Aleksandr",
+		Status:       "Cancelled",
+	}
+
+	OrderStorageMock.Save(&Order1)
+	OrderStorageMock.Save(&Order2)
+
+	fmt.Println(OrderStorageMock.GetAll())
+
+	Order2 = Order{
+		ID:           3,
+		CustomerName: "Maxim",
+		Status:       "Cancelled",
+	}
+	fmt.Println(OrderStorageMock.GetAll())
 
 }
