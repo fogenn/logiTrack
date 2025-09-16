@@ -5,9 +5,19 @@ import (
 	"strings"
 )
 
+func safeFuncSaveOrder(order *Order, storage *OrderStorageMock) { // чисто эксперемент
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Перехвачена паника:", r)
+		}
+	}()
+	storage.Save(order)
+}
+
 type OrderStorage interface {
 	Save(order *Order)
 	GetAll() []Order
+	GetByID(id int) (Order, error)
 }
 
 type Order struct {
@@ -24,12 +34,28 @@ func (o Order) IsDelivered() bool {
 	return o.Status == "Delivered"
 }
 
-func (OM *OrderStorageMock) Save(order *Order) {
-	OM.orders = append(OM.orders, *order)
+func (Osm *OrderStorageMock) Save(order *Order) {
+	if order.ID == 0 {
+		panic("test panic")
+	} else {
+		Osm.orders = append(Osm.orders, *order)
+	}
+	defer fmt.Println("запрос завершён", order)
 }
 
-func (OM OrderStorageMock) GetAll() []Order {
-	return OM.orders
+func (Osm OrderStorageMock) GetAll() []Order {
+	return Osm.orders
+}
+
+func (Osm OrderStorageMock) GetByID(id int) (Order, error) {
+	Orders := Osm.orders
+	for _, order := range Orders {
+		if order.ID == id {
+			return order, nil
+		}
+	}
+	//return Order{}, errors.New("GetByID-order not found")
+	return Order{}, fmt.Errorf("GetByID-order not found %v", Orders)
 }
 
 func countDelivered(sliceOrderStatuses []string) int {
@@ -52,7 +78,23 @@ func markCancelled(status *string) []string {
 	return nil
 }
 
+func TESTSafeFuncGetByID(ById int, storage OrderStorageMock) {
+	order, err := storage.GetByID(ById)
+	if err != nil {
+		fmt.Println(fmt.Errorf("TESTSafeFuncGetByID-Не удалось найти заказ  %+v: %w", order, err))
+
+	} else {
+		fmt.Printf("Корректный ID - %v", order)
+	}
+}
+
 func main() {
+	//safeFunc()
+	//defer func() {
+	//	if r := recover(); r != nil {
+	//		fmt.Println("Перехвачена паника:", r)
+	//	}
+	//}()
 
 	var (
 		orderID      int    = 1
@@ -122,17 +164,45 @@ func main() {
 		CustomerName: "Aleksandr",
 		Status:       "Cancelled",
 	}
+	Order3 := Order{
+		ID:           0,
+		CustomerName: "",
+		Status:       "",
+	}
+	Order4 := Order{
+		ID:           4,
+		CustomerName: "Norm",
+		Status:       "Delivered",
+	}
 
 	OrderStorageMock.Save(&Order1)
+	safeFuncSaveOrder(&Order3, &OrderStorageMock) // попытка записать опасный слайс
 	OrderStorageMock.Save(&Order2)
+	safeFuncSaveOrder(&Order4, &OrderStorageMock) // попытка записать норм слайс в безопасной функции
 
 	fmt.Println(OrderStorageMock.GetAll())
-
-	Order2 = Order{
-		ID:           3,
-		CustomerName: "Maxim",
-		Status:       "Cancelled",
+	fmt.Println("-----------------------")
+	fmt.Println(OrderStorageMock.orders[0].ID)
+	fmt.Println("----------Здесь вызывается сам метод .GetByID с правильным ID-------------")
+	order, err := OrderStorageMock.GetByID(2)
+	if err != nil {
+		fmt.Println(fmt.Errorf("Не удалось найти заказ  %v: %w", order, err))
+	} else {
+		fmt.Printf("Корректный ID - %v\n", order)
 	}
-	fmt.Println(OrderStorageMock.GetAll())
+	fmt.Println("----------Здесь вызывается сам метод .GetByID с НЕправильным ID-------------")
+	order1, err1 := OrderStorageMock.GetByID(1)
+	if err1 != nil {
+		fmt.Println(fmt.Errorf("Не удалось найти заказ  %v: %w", order1, err1))
+	} else {
+		fmt.Printf("Корректный ID - %v\n", order1)
+	}
+
+	fmt.Println("+++++++++++++++++++")
+	fmt.Println(OrderStorageMock.GetByID(2))
+	fmt.Println("-----------Здесь вызывается TESTSafeFuncGetByID с НЕправильным ID------------")
+	TESTSafeFuncGetByID(1, OrderStorageMock)
+	fmt.Println("-----------Здесь вызывается TESTSafeFuncGetByID с правильным ID------------")
+	TESTSafeFuncGetByID(4, OrderStorageMock)
 
 }
