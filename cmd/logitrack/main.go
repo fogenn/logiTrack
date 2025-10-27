@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"strings"
 	"sync"
 	"time"
@@ -16,12 +17,14 @@ func safeFuncSaveOrder(order *Order, storage *OrderStorageMock) { // чисто 
 	storage.Save(order)
 }
 
+// in model
 type OrderStorage interface {
 	Save(order *Order)
 	GetAll() []Order
 	GetByID(id int) (Order, error)
 }
 
+// in model
 type Order struct {
 	ID           int
 	CustomerName string
@@ -32,10 +35,13 @@ type OrderStorageMock struct {
 	orders []Order
 }
 
+// TODO надо наверно избавиться
 func (o Order) IsDelivered() bool {
+
 	return o.Status == "Delivered"
 }
 
+// in storage_mock
 func (Osm *OrderStorageMock) Save(order *Order) {
 	if order.ID == 0 {
 		panic("test panic")
@@ -45,10 +51,12 @@ func (Osm *OrderStorageMock) Save(order *Order) {
 	defer fmt.Println("запрос завершён", order)
 }
 
+// in storage_mock
 func (Osm OrderStorageMock) GetAll() []Order {
 	return Osm.orders
 }
 
+// in storage_mock
 func (Osm OrderStorageMock) GetByID(id int) (Order, error) {
 	Orders := Osm.orders
 	for _, order := range Orders {
@@ -73,6 +81,7 @@ func countDelivered(sliceOrderStatuses []string) int {
 	return count
 }
 
+// TODO надо наверно избавиться
 func markCancelled(status *string) []string {
 	if *status == "created" {
 		*status = "cancelled"
@@ -80,6 +89,7 @@ func markCancelled(status *string) []string {
 	return nil
 }
 
+// in Service
 func TESTSafeGetByID(ById int, storage OrderStorageMock) {
 	order, err := storage.GetByID(ById)
 	if err != nil {
@@ -90,23 +100,47 @@ func TESTSafeGetByID(ById int, storage OrderStorageMock) {
 	}
 }
 
+// in Service
 func StartDeliveryWorker(ch chan Order, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	for order := range ch {
-		fmt.Printf("\nOrder ID %v in worke -", order.ID)
-		time.Sleep(3 * time.Second)
-		fmt.Printf(" Order ID %v delivered", order.ID)
+	for {
+		select {
+		case order, ok := <-ch:
+			if !ok {
+				return
+			}
+			fmt.Printf("\nOrder ID %v in worke -", order.ID)
+			time.Sleep(3 * time.Second)
+			fmt.Printf("\n - Order ID %v delivered", order.ID)
+
+		case <-time.After(1 * time.Second):
+			fmt.Println("\nДолго ждём, подождём ещё...")
+		}
+
 	}
+	//TODO надо наверно избавиться
+	//for order := range ch {
+	//	select {
+	//	case <-time.After(1 * time.Second):
+	//		fmt.Println("Долго ждём, скип...")
+	//	default:
+	//		fmt.Printf("\nOrder ID %v in worke -", order.ID)
+	//		time.Sleep(3 * time.Second)
+	//		fmt.Printf("\n - Order ID %v delivered", order.ID)
+	//	}
+	//}
 }
 
 func main() {
+
+	//TODO надо наверно избавиться
 	var (
 		orderID      int    = 1
 		customerName string = "ИВАН"
 		isDelivered  bool   = false
 	)
-
+	//TODO надо наверно избавиться
 	orderIDs := []int{}
 	orderIDs = append(
 		orderIDs,
@@ -117,40 +151,51 @@ func main() {
 
 	OrderStorageMock := OrderStorageMock{}
 
+	//TODO надо наверно избавиться
 	orderStatuses := []string{
 		"created", "shipped", "delivered", "cancelled", "delivered", "created",
 	}
 
+	//TODO надо наверно избавиться
 	orderCount := map[string]int{
 		"Client1": 1,
 		"Client2": 5,
 	}
 
+	//TODO надо наверно избавиться
 	isReadyToShip := orderCount["Client2"] > 2
 
+	//TODO надо наверно избавиться
 	fmt.Println(
 		orderID,
 		customerName,
 		isDelivered,
 	)
 
+	//TODO надо наверно избавиться
 	fmt.Println(
 		len(orderIDs),
 		cap(orderIDs),
 	)
 
+	//TODO надо наверно избавиться
 	fmt.Println(isReadyToShip)
 
+	//TODO надо наверно избавиться
 	countDelivered(orderStatuses)
 
+	//TODO надо наверно избавиться
 	fmt.Println("слайс статусов ДО отмены -", orderStatuses)
 
+	//TODO надо наверно избавиться
 	for i := range orderStatuses {
 		markCancelled(&orderStatuses[i])
 	}
 
+	//TODO надо наверно избавиться
 	fmt.Println("слайс статусов после отмены -", orderStatuses, "\n")
 
+	//TODO надо наверно избавиться
 	fmt.Print("Статусы НЕ 'Отменён':\n")
 	for _, status := range orderStatuses {
 		if status == "cancelled" {
@@ -287,14 +332,14 @@ func main() {
 	fmt.Println("+++++++++++++++++++")
 
 	fmt.Println("-----------Здесь вызывается StartDeliveryWorker которая  вычитывает из канала------------")
-	deliveryChan := make(chan Order)
+	deliveryChan := make(chan Order, 2)
 	wg := sync.WaitGroup{}
 
 	wg.Add(1)
 	go StartDeliveryWorker(deliveryChan, &wg)
 
 	for _, orderU := range OrderStorageMock.orders {
-		time.Sleep(1 * time.Second)
+		time.Sleep(time.Duration(rand.Intn(5)) * time.Second)
 		fmt.Printf("\nТо что в канал положили: %+v", orderU)
 		deliveryChan <- orderU
 	}
