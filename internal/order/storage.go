@@ -3,11 +3,17 @@ package order
 import "fmt"
 
 type OrderStorage struct {
-	orders []Order
+	Orders []Order
 }
 
-func NewOrderStorage(os []Order) *OrderStorage {
-	return &OrderStorage{orders: os}
+type OrderStorageIntf interface {
+	Save(order *Order)
+	GetAll() []Order
+	GetByID(id int) (Order, error)
+}
+
+func NewOrderStorage() *OrderStorage {
+	return &OrderStorage{Orders: []Order{}}
 }
 
 // in storage_mock
@@ -15,19 +21,19 @@ func (Os *OrderStorage) Save(order *Order) {
 	if order.ID == 0 {
 		panic("test panic")
 	} else {
-		Os.orders = append(Os.orders, *order)
+		Os.Orders = append(Os.Orders, *order)
 	}
 	defer fmt.Println("запрос завершён", order)
 }
 
 // in storage_mock
 func (Os OrderStorage) GetAll() []Order {
-	return Os.orders
+	return Os.Orders
 }
 
 // in storage_mock
 func (Os OrderStorage) GetByID(id int) (Order, error) {
-	Orders := Os.orders
+	Orders := Os.Orders
 	for _, order := range Orders {
 		if order.ID == id {
 			return order, nil
