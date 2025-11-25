@@ -11,40 +11,41 @@ type OrderStorageMock struct {
 	Orders []Order
 }
 
-type OrderStorageMockIntf interface {
-	Save(order *Order)
-	GetAll() []Order
-	GetByID(id int) (*Order, int, error)
-	Update(id int, status string) error
-	Delete(id int) error
-}
+//type OrderStorageMockIntf interface {
+//	Save(order *Order)
+//	GetAll() []Order
+//	GetByID(id int) (*Order, int, error)
+//	Update(id int, status string) error
+//	Delete(id int) error
+//}
 
 func NewOrderStorageMock() *OrderStorageMock {
 	return &OrderStorageMock{Orders: []Order{}}
 }
 
+var _ StorageIntf = (*OrderStorageMock)(nil)
+
 // in storage_mock
-func (osm *OrderStorageMock) Save(order *Order) {
+func (osm *OrderStorageMock) Save(order *Order) error {
 	osm.mu.Lock()
 	defer osm.mu.Unlock()
+	defer fmt.Println("запрос завершён", order)
 
 	if order.ID == 0 {
 		panic("test panic")
 	} else {
 		osm.Orders = append(osm.Orders, *order)
 	}
-	defer fmt.Println("запрос завершён", order)
+	return nil
 }
 
-// in storage_mock
-func (osm OrderStorageMock) GetAll() []Order {
+func (osm *OrderStorageMock) GetAll() []Order {
 	osm.mu.Lock()
 	defer osm.mu.Unlock()
 
 	return osm.Orders
 }
 
-// in storage_mock
 func (osm *OrderStorageMock) GetByID(id int) (*Order, int, error) {
 	osm.mu.Lock()
 	defer osm.mu.Unlock()
