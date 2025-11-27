@@ -27,6 +27,7 @@ func main() {
 	storage := order.NewPostgresOrderStorage(db.DB)
 	hand := httpapi.NewOrderHandler(storage)
 
+	//TODO Убрать подальше
 	//Order1 := order.Order{
 	//	ID:           1,
 	//	CustomerName: "Ivan",
