@@ -26,14 +26,14 @@ func StartDeliveryWorker(ch chan Order, wg *sync.WaitGroup) {
 	}
 }
 
-func SafeFuncSaveOrder(order *Order, storage OrderStorageMockIntf) { // чисто эксперемент
+func SafeFuncSaveOrder(order *Order, storage StorageIntf) error { // чисто эксперемент
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println("Перехвачена паника:", r)
 		}
 	}()
 	storage.Save(order)
-
+	return nil
 }
 
 func TESTSafeGetByID(ById int, storage OrderStorageMock) {

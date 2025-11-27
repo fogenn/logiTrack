@@ -10,19 +10,19 @@ import (
 	"strings"
 )
 
-type OrderService interface {
-	Save(order *order.Order)
-	GetAll() []order.Order
-	GetByID(id int) (*order.Order, int, error) // Обратите внимание на сигнатуру
-	Update(id int, status string) error
-	Delete(id int) error
-}
+//type OrderService interface {
+//	Save(order *order.Order)
+//	GetAll() []order.Order
+//	GetByID(id int) (*order.Order, int, error)
+//	Update(id int, status string) error
+//	Delete(id int) error
+//}
 
 type OrderHandler struct {
-	order OrderService
+	order order.StorageIntf
 }
 
-func NewOrderHandler(o OrderService) *OrderHandler {
+func NewOrderHandler(o order.StorageIntf) *OrderHandler {
 	return &OrderHandler{
 		order: o,
 	}
